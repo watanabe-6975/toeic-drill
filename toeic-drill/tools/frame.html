@@ -1,0 +1,7 @@
+<!doctype html>
+<!-- スクリーンショット用：アプリを幅390pxの枠に入れて表示する（ヘッドレスChromeは窓の最小幅が約500pxのため、中央に置いて切り抜く） -->
+<meta charset="utf-8">
+<body style="margin:0;background:#fff">
+<iframe id="f" style="border:0;width:390px;height:844px;display:block;margin:0 auto"></iframe>
+<script>document.getElementById('f').src = '../' + decodeURIComponent(location.hash.slice(1));</script>
+</body>
