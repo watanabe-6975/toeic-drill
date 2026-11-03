@@ -1,5 +1,5 @@
 /* オフライン用：アプリ一式を端末に保存し、通信なしでも開けるようにする */
-const VERSION = 'toeic-drill-v2';
+const VERSION = 'toeic-drill-v3';
 const FILES = [
   './', 'index.html', 'style.css', 'app.js', 'manifest.webmanifest',
   'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png',

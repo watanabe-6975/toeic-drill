@@ -2,6 +2,6 @@
 
 - ビルド不要の静的アプリ。依存ライブラリを足さない。GitHub Pages（main / root）で公開する。
 - 問題データは `data/*.js`。形式と決まりは README の「問題を足すときの決まり」を参照。正解は選択肢の先頭。
-- データを変えたら `python3 tools/check.py` で不備0件を確認し、README の件数を更新し、`sw.js` の `VERSION` を上げる。
+- データを変えたら `python3 tools/check.py` で不備0件を確認し、README の件数を更新し、`sw.js` の `VERSION` と `app.js` の `APP_VERSION` を同じ数字に上げる（ヘッダーの版番号で反映を確認できる）。
 - 問題はすべてオリジナル。公式問題集・市販教材の問題を写さない、言い換えない。解説は日本語、文法用語は【用語】で書き用語集に載せる。
 - 記録は localStorage（キー `toeicDrill.v1`）。形式を変えるときは古い記録を読めるようにする。

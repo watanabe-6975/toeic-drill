@@ -1,6 +1,7 @@
 'use strict';
 /* TOEIC Drill — 文法・読解・リスニングの「解く練習」アプリ（ビルド不要の静的アプリ） */
 
+const APP_VERSION = 3; // sw.js の VERSION（toeic-drill-v3）と同じ数字にする。tools/check.py で点検
 const EXAM_DATE = '2026-11-15';
 const STORE_KEY = 'toeicDrill.v1';
 const CAT = { pos: '品詞', tense: '時制・態', prep: '前置詞', conj: '接続詞', rel: '関係詞', usage: '語法' };
@@ -205,6 +206,7 @@ function setTab(name) { document.querySelectorAll('.tabs a').forEach((a) => a.cl
 function view(html) { $('#view').innerHTML = (DEMO ? '<div class="demo">デモデータを表示しています（スクリーンショット用。保存されません）</div>' : '') + html; window.scrollTo(0, 0); }
 function updateCountdown() {
   const d = daysBetween(today(), EXAM_DATE);
+  $('#ver').textContent = 'v' + APP_VERSION;
   $('#countdown').textContent = d > 0 ? '本番 11/15 まであと ' + d + ' 日' : d === 0 ? '本番当日！' : '本番おつかれさま';
 }
 
@@ -561,7 +563,7 @@ function renderStats() {
     '<h2>記録の保存</h2><div class="card"><p class="muted small">記録はこのブラウザの中だけにあります。機種変更やブラウザのデータ削除に備えて、ときどき書き出してください。</p>' +
     '<div class="row"><button class="btn" id="exp">書き出し（JSON）</button><label class="btn sub">読み込み<input type="file" id="imp" accept="application/json,.json" hidden></label></div>' +
     '<div class="row" style="margin-top:8px"><a class="btn sub" href="#glossary">用語集</a><button class="btn sub" id="reset">記録を消す</button></div></div>' +
-    '<p class="muted small">問題数：Part 5 ' + DB.p5.length + '問／長文 ' + DB.sets.length + 'セット（' + DB.sets.reduce((s, x) => s + x.qs.length, 0) + '問）／リスニング ' + (DB.p2.length + DB.p3.reduce((s, x) => s + x.qs.length, 0)) + '問</p>');
+    '<p class="muted small">問題数：Part 5 ' + DB.p5.length + '問／長文 ' + DB.sets.length + 'セット（' + DB.sets.reduce((s, x) => s + x.qs.length, 0) + '問）／リスニング ' + (DB.p2.length + DB.p3.reduce((s, x) => s + x.qs.length, 0)) + '問／アプリの版：v' + APP_VERSION + '</p>');
   document.querySelectorAll('[data-tag]').forEach((b) => b.onclick = () => {
     const tag = b.dataset.tag;
     const units = tag.startsWith('rd/') ? pickSets(DB.sets, 2, (s) => s.qs.some((q) => q.tag === tag)).map(unitOf) : pickP5(10, (q) => q.tag === tag).map(unitOf);

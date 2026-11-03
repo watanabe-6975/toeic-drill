@@ -12,6 +12,7 @@
 - リスニング: Part 2 は選択肢3つで重複なし / Part 3 は選択肢4つ・根拠の文が会話にそのまま存在するか
 - 用語: 解説の【用語】がすべて用語集にあるか / 用語集の語がどこかで使われているか
 - 日本語訳: すべての問題・本文・会話に訳があるか / 訳の数（設問数・発言数）が合っているか
+- 版番号: sw.js の VERSION の数字と app.js の APP_VERSION が一致するか
 """
 import json
 import pathlib
@@ -220,6 +221,16 @@ for t in gloss:
     if used_terms[t] == 0:
         err("glossary.js", f"用語【{t}】がどの解説にも出てこない")
 
+# ---------- 版番号 ----------
+sw_m = re.search(r"const VERSION = 'toeic-drill-v(\d+)';", (ROOT / "sw.js").read_text(encoding="utf-8"))
+app_m = re.search(r"const APP_VERSION = (\d+);", (ROOT / "app.js").read_text(encoding="utf-8"))
+if not sw_m:
+    err("sw.js", "VERSION（'toeic-drill-v数字'）が見つからない")
+if not app_m:
+    err("app.js", "APP_VERSION（数字）が見つからない")
+if sw_m and app_m and sw_m.group(1) != app_m.group(1):
+    err("sw.js / app.js", f"版番号がずれている: sw.js は v{sw_m.group(1)}、app.js の APP_VERSION は {app_m.group(1)}")
+
 # ---------- 結果 ----------
 cat_count = Counter(t.split("/")[0] for t in tag_count.elements())
 n_rd_q = sum(len(r["qs"]) for _, r in sets)
@@ -232,6 +243,7 @@ print(f"- Part 6: {sum(1 for _, r in sets if r['type'] == 'p6')}セット / Part
 print(f"- リスニング: Part 2 {len(lis['p2'])}問 + Part 3 {len(lis['p3'])}会話{n_p3_q}問（計{len(lis['p2']) + n_p3_q}問）")
 print(f"- 用語集: {len(gloss)}語")
 print(f"- 文法の小項目: {len(tag_count)}種類")
+print(f"- アプリの版: v{app_m.group(1) if app_m else '?'}（sw.js: v{sw_m.group(1) if sw_m else '?'}）")
 print()
 print(f"## 点検の結果: 不備 {len(errors)} 件")
 for e in errors:
