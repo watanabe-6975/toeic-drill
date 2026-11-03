@@ -31,22 +31,24 @@ function weightedSample(pool, n, wf) {
 
 /* ---------- 問題データの読み込み ---------- */
 const DB = { p5: [], sets: [], p2: [], p3: [], byId: {} };
-(window.P5 || []).forEach(([tag, s, o, ex]) => {
-  const q = { id: 'p5' + hash(s), kind: 'p5', tag, cat: tag.split('/')[0], s, o, ans: o[0], ex };
+(window.P5 || []).forEach(([tag, s, o, ex, ja]) => {
+  const q = { id: 'p5' + hash(s), kind: 'p5', tag, cat: tag.split('/')[0], s, o, ans: o[0], ex, ja: ja || '' };
   DB.p5.push(q); DB.byId[q.id] = q;
 });
 (window.READING || []).forEach((r) => {
   const id = 'rd' + hash(r.title + r.text.slice(0, 80));
-  const set = { id, kind: 'rd', type: r.type, genre: r.genre, title: r.title, text: r.text, qs: [] };
-  r.qs.forEach(([q, o, ev, ex, tag], i) => { const x = { id: id + '-' + i, kind: 'rd', set: id, q, o, ans: o[0], ev, ex, tag: tag || null }; set.qs.push(x); DB.byId[x.id] = x; });
+  const ja = r.ja || { text: '', qs: [] };
+  const set = { id, kind: 'rd', type: r.type, genre: r.genre, title: r.title, text: r.text, ja: ja.text, qs: [] };
+  r.qs.forEach(([q, o, ev, ex, tag], i) => { const x = { id: id + '-' + i, kind: 'rd', set: id, q, o, ans: o[0], ev, ex, tag: tag || null, ja: ja.qs[i] || ['', ''] }; set.qs.push(x); DB.byId[x.id] = x; });
   DB.sets.push(set); DB.byId[id] = set;
 });
 const LIS = window.LISTENING || { p2: [], p3: [] };
-LIS.p2.forEach(([s, o, ex]) => { const q = { id: 'p2' + hash(s), kind: 'p2', s, o, ans: o[0], ex }; DB.p2.push(q); DB.byId[q.id] = q; });
+LIS.p2.forEach(([s, o, ex, ja]) => { const q = { id: 'p2' + hash(s), kind: 'p2', s, o, ans: o[0], ex, ja: ja || ['', ''] }; DB.p2.push(q); DB.byId[q.id] = q; });
 LIS.p3.forEach((c) => {
   const id = 'p3' + hash(c.lines.map((l) => l[1]).join(' '));
-  const set = { id, kind: 'p3', title: c.title, lines: c.lines, qs: [] };
-  c.qs.forEach(([q, o, ev, ex], i) => { const x = { id: id + '-' + i, kind: 'p3', set: id, q, o, ans: o[0], ev, ex }; set.qs.push(x); DB.byId[x.id] = x; });
+  const ja = c.ja || { lines: [], qs: [] };
+  const set = { id, kind: 'p3', title: c.title, lines: c.lines, jaLines: ja.lines, qs: [] };
+  c.qs.forEach(([q, o, ev, ex], i) => { const x = { id: id + '-' + i, kind: 'p3', set: id, q, o, ans: o[0], ev, ex, ja: ja.qs[i] || ['', ''] }; set.qs.push(x); DB.byId[x.id] = x; });
   DB.p3.push(set); DB.byId[id] = set;
 });
 const GLOSS = window.GLOSSARY || {};
@@ -183,11 +185,11 @@ function speakSeq(parts, onDone) {
 function stopSpeech() { TTS.token++; if (TTS.supported) try { speechSynthesis.cancel(); } catch (e) { /* noop */ } }
 
 /* ---------- 解説の表示（用語は初めて出たときに説明） ---------- */
-function renderEx(text) {
+function renderEx(text, noGloss) {
   const terms = [];
   let html = esc(text).replace(/【([^】]+)】/g, (m, t) => { if (!terms.includes(t)) terms.push(t); return '<b class="term">' + t + '</b>'; });
   html = '<div class="ex">' + html + '</div>';
-  terms.forEach((t) => {
+  if (!noGloss) terms.forEach((t) => {
     if (!S.seen[t] && GLOSS[t]) {
       html += '<div class="gl"><b>新しい用語：' + esc(t) + '</b><br>' + esc(GLOSS[t][0]) + '<br><span class="muted">たとえ：' + esc(GLOSS[t][1]) + '</span></div>';
       S.seen[t] = today();
@@ -315,7 +317,7 @@ function renderListeningHome() {
 function startSession(title, units, opts) {
   opts = opts || {};
   if (!units.length) { alert('出せる問題がありません。'); return; }
-  SES = { title, units, i: opts.start || 0, ok: 0, n: 0, timed: !!opts.timed, times: [], tab: opts.tab || 'menu', menuBlock: opts.menuBlock };
+  SES = { title, units, i: opts.start || 0, ok: 0, n: 0, timed: !!opts.timed, times: [], log: [], tab: opts.tab || 'menu', menuBlock: opts.menuBlock };
   history.replaceState(null, '', '#run');
   setTab(SES.tab);
   renderUnit();
@@ -345,7 +347,54 @@ function renderSummary() {
   }
   const back = SES.menuBlock != null ? '#menu' : '#' + SES.tab;
   view('<h1>おつかれさま</h1><div class="card"><p><b>' + SES.n + '問中 ' + SES.ok + '問正解（' + pct(SES.ok, SES.n) + '）</b></p>' + extra +
-    '<p class="muted">間違えた問題は 翌日・3日後・7日後 に復習として戻ってきます。</p></div><a class="btn wide" href="' + back + '">もどる</a>');
+    '<p class="muted">間違えた問題は 翌日・3日後・7日後 に復習として戻ってきます。</p></div>' +
+    (SES.log.length ? '<h2>解いた問題（タップで答えと訳）</h2>' + reviewListHtml(SES.log) : '') +
+    '<a class="btn wide" href="' + back + '">もどる</a>');
+}
+
+/* リザルト画面：解いた問題の一覧。タップで答え・解説・日本語訳を開く（長文・会話は本文ごとにまとめる） */
+function answerLines(q, e) {
+  const yours = e.timeout ? '時間切れ' : e.chosen;
+  return '<p class="rv-a"><span class="tag ok">正解</span> ' + esc(q.ans) + '</p>' +
+    (e.ok ? '' : '<p class="rv-a"><span class="tag due">あなた</span> ' + esc(yours) + '</p>');
+}
+function jaHtml(lines) { return '<div class="ja">' + lines.filter(Boolean).map((t) => '<p>' + esc(t) + '</p>').join('') + '</div>'; }
+function reviewItemHtml(e, label, body) {
+  return '<details class="rv"><summary><span class="mk ' + (e.ok ? 'ok' : 'ng') + '">' + (e.ok ? '○' : '×') + '</span><span class="rv-q">' + label + '</span></summary><div class="rv-body">' + body + '</div></details>';
+}
+function reviewListHtml(log) {
+  const out = []; const groups = {};
+  log.forEach((e) => {
+    const q = DB.byId[e.id]; if (!q) return;
+    if (q.kind === 'p5') {
+      const filled = esc(q.s).replace('___', '<b class="fill">' + esc(q.ans) + '</b>');
+      out.push(reviewItemHtml(e, esc(q.s).replace('___', '<span class="blank sm">&nbsp;</span>'),
+        '<p class="stem">' + filled + '</p>' + answerLines(q, e) + renderEx(q.ex, true) + jaHtml(['訳：' + q.ja])));
+    } else if (q.kind === 'p2') {
+      out.push(reviewItemHtml(e, esc(q.s),
+        '<p class="script"><b>問いかけ：</b>' + esc(q.s) + '</p>' + answerLines(q, e) +
+        '<p class="small muted">そのほかの選択肢：' + q.o.slice(1).map(esc).join(' / ') + '</p>' + renderEx(q.ex, true) +
+        jaHtml(['問いかけ：' + q.ja[0], '正解：' + q.ja[1]])));
+    } else {
+      const set = DB.byId[q.set];
+      if (!groups[set.id]) { groups[set.id] = { set, items: [] }; out.push(groups[set.id]); }
+      const k = set.qs.indexOf(q);
+      groups[set.id].items.push({ k, html: reviewItemHtml(e, 'Q' + (k + 1) + '. ' + esc(q.q),
+        answerLines(q, e) + renderEx(q.ex, true) + jaHtml(['設問：' + q.ja[0], '正解：' + q.ja[1]])) });
+    }
+  });
+  // 続けて並ぶ1問ずつの項目（Part 5・Part 2）は1枚のカードにまとめる
+  const merged = [];
+  out.forEach((x) => { if (typeof x === 'string' && Array.isArray(merged[merged.length - 1])) merged[merged.length - 1].push(x); else merged.push(typeof x === 'string' ? [x] : x); });
+  return merged.map((x) => {
+    if (Array.isArray(x)) return '<div class="card rv-card">' + x.join('') + '</div>';
+    const s = x.set;
+    const en = s.kind === 'rd' ? passageHtml(s, s.qs.map((q) => q.ev)) : esc(s.lines.map((l) => l[0] + ': ' + l[1]).join('\n'));
+    const ja = s.kind === 'rd' ? esc(s.ja) : esc(s.lines.map((l, i) => l[0] + '：' + (s.jaLines[i] || '')).join('\n'));
+    return '<div class="card rv-card"><p class="qhead">' + esc(s.kind === 'rd' ? (s.type === 'p6' ? 'Part 6' : 'Part 7') + '・' + s.title : 'Part 3・' + s.title) + '</p>' +
+      '<details class="rv"><summary>' + (s.kind === 'rd' ? '本文' : '会話') + 'と日本語訳を見る</summary><div class="rv-body"><div class="passage">' + en + '</div><div class="ja passage">' + ja + '</div></div></details>' +
+      x.items.sort((a, b) => a.k - b.k).map((it) => it.html).join('') + '</div>';
+  }).join('');
 }
 function optButtons(opts, showText) {
   return '<div class="opts">' + opts.map((o, i) => '<button class="opt" data-i="' + i + '"><b>(' + LETTERS[i] + ')</b>' + (showText ? esc(o) : '') + '</button>').join('') + '</div>';
@@ -375,6 +424,7 @@ function renderP5(q) {
     if (SES.timed) SES.times.push(Math.min(sec, TIMED_SEC));
     SES.n++; if (ok) SES.ok++;
     record(q.id, ok, 'p5', q.tag);
+    SES.log.push({ id: q.id, ok, chosen: i >= 0 ? opts[i] : '', timeout: !!timeout });
     markOpts($('#view'), opts, i, q.ans, false);
     $('#fb').innerHTML = '<div class="card">' + verdictHtml(ok, q.ans, timeout ? '時間切れ' : SES.timed ? sec + '秒' : '') + renderEx(q.ex) + '</div><button class="btn wide" id="next">次へ</button>';
     saveState();
@@ -413,35 +463,52 @@ function renderP3(set) {
       (showText || done ? '<div class="script" style="margin-top:8px">' + s + '</div>' : '<p class="muted small">問題文を先に読んでから再生しましょう（本番と同じ）。スクリプトは全問に答えると表示されます。</p>') + '</div>';
   }, 'Part 3・会話', 'p3', false, () => { const p = $('#play'); if (p) p.onclick = () => speakSeq(playParts()); });
 }
-/* 長文・会話の共通部分：本文 → 設問を1問ずつ。答えると根拠の文に色が付く */
+/* 長文・会話の共通部分：本文の下に設問をタブ（Q1・Q2…）で並べ、好きな順に切り替えて解ける。
+   答えると根拠の文に色が付く。本文は描き直してもスクロール位置を保つ */
 function renderQuestionSet(set, bodyFn, label, part, hl, afterRender) {
-  const st = { k: 0, marks: [], answers: [] };
-  const draw = () => {
-    const done = st.k >= set.qs.length;
-    const answered = st.answers.map((a, i) => {
-      const q = set.qs[i];
-      if (!a.html) { a.html = renderEx(q.ex); saveState(); }
-      return '<div class="card"><p class="qhead">Q' + (i + 1) + '. ' + esc(q.q) + '</p>' + verdictHtml(a.ok, q.ans) + a.html + '</div>';
-    }).join('');
-    let cur = '';
-    if (!done) {
-      const q = set.qs[st.k]; st.opts = shuffle(q.o);
-      cur = '<div class="card"><p class="qhead">Q' + (st.k + 1) + '. ' + esc(q.q) + '</p>' + optButtons(st.opts, true) + '</div>';
-    }
-    view(progHtml(label) + bodyFn(st.marks, done) + answered + cur + (done ? '<button class="btn wide" id="next">次へ</button>' : ''));
+  const st = { cur: 0, answers: set.qs.map(() => null), opts: set.qs.map((q) => shuffle(q.o)) };
+  const marks = () => set.qs.filter((q, i) => st.answers[i] && q.ev).map((q) => q.ev);
+  const allDone = () => st.answers.every(Boolean);
+  view(progHtml(label) + '<div id="qbody"></div><div class="qtabs" id="qtabs" role="tablist"></div><div id="qarea"></div>');
+  const drawBody = () => {
+    const old = $('#passage'); const top = old ? old.scrollTop : 0;
+    $('#qbody').innerHTML = bodyFn(marks(), allDone());
+    const p = $('#passage'); if (p) p.scrollTop = top;
     if (afterRender) afterRender();
-    if (done) { $('#next').onclick = nextUnit; return; }
-    document.querySelectorAll('.opt').forEach((b) => b.onclick = () => {
-      const q = set.qs[st.k]; const ok = st.opts[+b.dataset.i] === q.ans;
+  };
+  const drawQ = () => {
+    $('#qtabs').innerHTML = set.qs.map((q, i) => {
+      const a = st.answers[i];
+      return '<button class="qtab' + (i === st.cur ? ' on' : '') + (a ? (a.ok ? ' ok' : ' ng') : '') + '" role="tab" aria-selected="' + (i === st.cur) + '" data-q="' + i + '">Q' + (i + 1) + (a ? (a.ok ? ' ○' : ' ×') : '') + '</button>';
+    }).join('');
+    const i = st.cur; const q = set.qs[i]; const a = st.answers[i];
+    let html = '<div class="card"><p class="qhead">Q' + (i + 1) + '. ' + esc(q.q) + '</p>' + optButtons(st.opts[i], true);
+    if (a) {
+      if (!a.html) { a.html = renderEx(q.ex); saveState(); }
+      html += verdictHtml(a.ok, q.ans) + a.html;
+    }
+    html += '</div>';
+    const nextOpen = st.answers.findIndex((x, k) => !x && k !== i);
+    if (allDone()) html += '<button class="btn wide" id="next">次へ</button>';
+    else if (a && nextOpen >= 0) html += '<button class="btn sub wide" id="goNext">Q' + (nextOpen + 1) + ' へ</button>';
+    $('#qarea').innerHTML = html;
+    if (a) markOpts($('#qarea'), st.opts[i], st.opts[i].indexOf(a.chosen), q.ans, false);
+    document.querySelectorAll('.qtab').forEach((b) => b.onclick = () => { st.cur = +b.dataset.q; drawQ(); });
+    const n = $('#next'); if (n) n.onclick = nextUnit;
+    const g = $('#goNext'); if (g) g.onclick = () => { st.cur = nextOpen; drawQ(); };
+    if (a) return;
+    $('#qarea').querySelectorAll('.opt').forEach((b) => b.onclick = () => {
+      const chosen = st.opts[i][+b.dataset.i]; const ok = chosen === q.ans;
       SES.n++; if (ok) SES.ok++;
       record(q.id, ok, part, q.tag);
-      st.answers.push({ ok }); if (q.ev) st.marks.push(q.ev); st.k++;
-      const y = window.scrollY; draw(); window.scrollTo(0, y);
-      const p = $('#passage'); const m = p && p.querySelector('mark:last-of-type');
+      SES.log.push({ id: q.id, ok, chosen });
+      st.answers[i] = { ok, chosen };
+      drawBody(); drawQ();
+      const p = $('#passage'); const m = p && q.ev && [...p.querySelectorAll('mark')].find((x) => x.textContent === q.ev);
       if (m && hl) p.scrollTop = Math.max(0, m.offsetTop - p.offsetTop - 40);
     });
   };
-  draw();
+  drawBody(); drawQ();
 }
 
 function renderP2(q) {
@@ -458,6 +525,7 @@ function renderP2(q) {
     const i = +b.dataset.i; const ok = opts[i] === q.ans;
     SES.n++; if (ok) SES.ok++;
     record(q.id, ok, 'p2', null);
+    SES.log.push({ id: q.id, ok, chosen: opts[i] });
     markOpts($('#view'), opts, i, q.ans, true);
     $('#fb').innerHTML = '<div class="card">' + verdictHtml(ok, q.ans) + '<p class="script"><b>問いかけ：</b>' + esc(q.s) + '</p>' + renderEx(q.ex) + '</div><button class="btn wide" id="next">次へ</button>';
     saveState();

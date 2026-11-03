@@ -1,5 +1,5 @@
 /* オフライン用：アプリ一式を端末に保存し、通信なしでも開けるようにする */
-const VERSION = 'toeic-drill-v1';
+const VERSION = 'toeic-drill-v2';
 const FILES = [
   './', 'index.html', 'style.css', 'app.js', 'manifest.webmanifest',
   'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png',
@@ -7,7 +7,8 @@ const FILES = [
   'data/p5_rel.js', 'data/p5_usage.js', 'data/reading_p6.js', 'data/reading_p7.js', 'data/reading_p7b.js', 'data/listening.js',
 ];
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(VERSION).then((c) => c.addAll(FILES)).then(() => self.skipWaiting()));
+  // cache: 'reload' でブラウザのHTTPキャッシュを通さず、必ず最新のファイルを取りに行く
+  e.waitUntil(caches.open(VERSION).then((c) => c.addAll(FILES.map((f) => new Request(f, { cache: 'reload' })))).then(() => self.skipWaiting()));
 });
 self.addEventListener('activate', (e) => {
   e.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== VERSION).map((k) => caches.delete(k)))).then(() => self.clients.claim()));

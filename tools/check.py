@@ -11,6 +11,7 @@
   Part 6 の空所番号が本文にあるか / 解説の有無
 - リスニング: Part 2 は選択肢3つで重複なし / Part 3 は選択肢4つ・根拠の文が会話にそのまま存在するか
 - 用語: 解説の【用語】がすべて用語集にあるか / 用語集の語がどこかで使われているか
+- 日本語訳: すべての問題・本文・会話に訳があるか / 訳の数（設問数・発言数）が合っているか
 """
 import json
 import pathlib
@@ -59,6 +60,14 @@ gloss = load("glossary.js", "GLOSSARY")
 used_terms = Counter()
 
 
+JP = re.compile(r"[\u3040-\u30ff\u4e00-\u9fff]")
+
+
+def ja_ok(where, text, what="日本語訳"):
+    if not isinstance(text, str) or not JP.search(text):
+        err(where, f"{what}がない")
+
+
 def terms_in(where, text):
     for t in re.findall(r"【([^】]+)】", text):
         used_terms[t] += 1
@@ -74,10 +83,11 @@ for f in ["p5_pos.js", "p5_tense.js", "p5_prep.js", "p5_conj.js", "p5_rel.js", "
 seen_sent = {}
 tag_count = Counter()
 for where, it in p5:
-    if not (isinstance(it, list) and len(it) == 4):
-        err(where, "形式が [タグ, 問題文, 選択肢, 解説] ではない")
+    if not (isinstance(it, list) and len(it) == 5):
+        err(where, "形式が [タグ, 問題文, 選択肢, 解説, 日本語訳] ではない")
         continue
-    tag, s, opts, ex = it
+    tag, s, opts, ex, ja = it
+    ja_ok(where, ja)
     if not re.fullmatch(r"[a-z]+/[^/]+", tag) or tag.split("/")[0] not in CATS:
         err(where, f"タグの形式が不正: {tag}")
     tag_count[tag] += 1
@@ -143,6 +153,16 @@ for where, r in sets:
         if len(q) == 5 and not re.fullmatch(r"[a-z]+/[^/]+", q[4]):
             err(w, f"タグの形式が不正: {q[4]}")
         terms_in(w, ex)
+    ja = r.get("ja") or {}
+    ja_ok(where, ja.get("text"), "本文の訳")
+    if len(ja.get("qs", [])) != len(r["qs"]):
+        err(where, "設問の訳の数が設問数と違う")
+    for j, t in enumerate(ja.get("qs", [])):
+        if not (isinstance(t, list) and len(t) == 2):
+            err(f"{where} Q{j + 1}", "設問の訳は [設問の訳, 正解の訳]")
+            continue
+        ja_ok(f"{where} Q{j + 1}", t[0], "設問の訳")
+        ja_ok(f"{where} Q{j + 1}", t[1], "正解の訳")
     if r["type"] == "p6":
         gaps = re.findall(r"\((\d)\) ?_{3,}", r["text"])
         if len(gaps) != len(r["qs"]):
@@ -153,10 +173,15 @@ lis = load("listening.js", "LISTENING")
 p2_seen = set()
 for i, q in enumerate(lis["p2"]):
     w = f"listening.js p2#{i + 1}"
-    if not (isinstance(q, list) and len(q) == 3):
-        err(w, "形式が [問いかけ, 選択肢, 解説] ではない")
+    if not (isinstance(q, list) and len(q) == 4):
+        err(w, "形式が [問いかけ, 選択肢, 解説, [問いかけの訳, 正解の訳]] ではない")
         continue
-    s, opts, ex = q
+    s, opts, ex, ja = q
+    if not (isinstance(ja, list) and len(ja) == 2):
+        err(w, "訳は [問いかけの訳, 正解の訳]")
+    else:
+        ja_ok(w, ja[0], "問いかけの訳")
+        ja_ok(w, ja[1], "正解の訳")
     if norm(s) in p2_seen:
         err(w, "問いかけが重複")
     p2_seen.add(norm(s))
@@ -167,6 +192,16 @@ for i, q in enumerate(lis["p2"]):
 for i, c in enumerate(lis["p3"]):
     w = f"listening.js p3#{i + 1}"
     script = " ".join(l[1] for l in c["lines"])
+    ja = c.get("ja") or {}
+    if len(ja.get("lines", [])) != len(c["lines"]):
+        err(w, "会話の訳の数が発言数と違う")
+    for t in ja.get("lines", []):
+        ja_ok(w, t, "発言の訳")
+    if len(ja.get("qs", [])) != len(c["qs"]):
+        err(w, "設問の訳の数が設問数と違う")
+    for t in ja.get("qs", []):
+        ja_ok(w, t[0] if isinstance(t, list) and t else None, "設問の訳")
+        ja_ok(w, t[1] if isinstance(t, list) and len(t) > 1 else None, "正解の訳")
     if len(c["qs"]) != 3:
         err(w, "Part 3 は1会話3問")
     if any(l[0] not in ("M", "W", "M2", "W2") for l in c["lines"]):

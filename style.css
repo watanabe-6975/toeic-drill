@@ -102,7 +102,7 @@ h2 { font-size: 16px; margin: 20px 0 8px; color: var(--muted); font-weight: 600;
 .ex { white-space: pre-wrap; }
 .term { color: var(--accent); }
 .gl { margin-top: 10px; padding: 10px 12px; border-left: 4px solid var(--accent); background: var(--accent-soft); border-radius: 6px; font-size: 14px; }
-.passage { white-space: pre-wrap; font-size: 15px; line-height: 1.7; max-height: 55vh; overflow-y: auto; }
+.passage { white-space: pre-wrap; font-size: 15px; line-height: 1.7; max-height: 45vh; overflow-y: auto; }
 .passage .gap { font-weight: 700; color: var(--accent); }
 .passage .doc-h { font-weight: 700; }
 mark { background: var(--mark); color: inherit; padding: 0 1px; }
@@ -140,3 +140,33 @@ dl.gloss dd { margin: 2px 0 0; font-size: 14px; }
 .tabs a.on { color: var(--accent); }
 .demo { background: var(--warn-soft); border-radius: 8px; padding: 6px 10px; font-size: 13px; margin-bottom: 10px; }
 select { font: inherit; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); color: var(--text); min-height: 40px; }
+/* 長文・会話の設問タブ */
+.qtabs { display: flex; gap: 6px; margin: 0 0 8px; overflow-x: auto; }
+.qtab {
+  flex: 1 0 auto; min-height: 44px; padding: 8px 12px; border-radius: 10px;
+  border: 1px solid var(--line); background: var(--card); color: var(--text); font: inherit; font-weight: 600; cursor: pointer;
+}
+.qtab.on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+.qtab.ok { color: var(--ok); }
+.qtab.ng { color: var(--ng); }
+.qtab.on.ok, .qtab.on.ng { background: var(--accent-soft); }
+/* リザルト画面の振り返り一覧 */
+.rv-card { padding: 4px 16px; }
+.rv-card > .qhead { margin: 10px 0 2px; }
+details.rv { border-top: 1px solid var(--line); }
+.rv-card > details.rv:first-child { border-top: 0; }
+details.rv > summary { list-style: none; cursor: pointer; padding: 12px 0; display: flex; gap: 10px; align-items: baseline; }
+details.rv > summary::-webkit-details-marker { display: none; }
+details.rv > summary::after { content: "＋"; margin-left: auto; color: var(--muted); }
+details.rv[open] > summary::after { content: "－"; }
+details.rv .mk { font-weight: 700; flex: 0 0 auto; }
+details.rv .mk.ok { color: var(--ok); }
+details.rv .mk.ng { color: var(--ng); }
+.rv-body { padding: 0 0 12px; }
+.rv-body .passage { max-height: none; margin-bottom: 10px; }
+.rv-a { margin: 4px 0; }
+.fill { color: var(--ok); text-decoration: underline; }
+.blank.sm { min-width: 3em; }
+.ja { margin-top: 10px; padding: 10px 12px; border-radius: 8px; background: var(--bg); font-size: 14px; }
+.ja p { margin: 2px 0; }
+details.rv .rv-q { flex: 1; min-width: 0; }
