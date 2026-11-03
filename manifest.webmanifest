@@ -1,0 +1,17 @@
+{
+  "name": "TOEIC Drill",
+  "short_name": "TOEIC Drill",
+  "description": "TOEIC L&R の文法・読解・リスニングを解く練習アプリ",
+  "lang": "ja",
+  "start_url": "./index.html#menu",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f4f6f9",
+  "theme_color": "#1f4e79",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}
